@@ -1,0 +1,8 @@
+{
+  "name": "Calculadora Cartón Chile",
+  "short_name": "CalcCartón",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0056b3"
+}

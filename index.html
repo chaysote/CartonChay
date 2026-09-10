@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Calculadora Cartón Chile</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    label { display: block; margin-top: 15px; font-weight: 600; font-size: 14px; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+    .checkbox-group { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+    .checkbox-group input { width: auto; transform: scale(1.2); }
+    button { margin-top: 25px; width: 100%; padding: 12px; background: #0056b3; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .result { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; display: none; line-height: 1.6; }
+    .highlight-mat { color: #0056b3; font-weight: bold; font-size: 18px; float: right; }
+  </style>
+</head>
+<body onload="actualizarMaterial(); calcular();">
+<div class="card">
+  <h2>Calculadora de Cajas</h2>
+  
+  <label>Tipo de Caja (FEFCO)</label>
+  <select id="caja">
+    <option value="200">200</option>
+    <option value="200Bi">200 Bi</option>
+    <option value="201" selected>201</option>
+    <option value="201Bi">201 Bi</option>
+    <option value="202">202</option>
+    <option value="203">203</option>
+    <option value="203Bi">203 Bi</option>
+    <option value="422">422</option>
+    <option value="426C">426C</option>
+    <option value="427B">427B</option>
+    <option value="427C">427C</option>
+    <option value="429">429</option>
+    <option value="452">452</option>
+    <option value="453">453</option>
+    <option value="458">458</option>
+    <option value="Placa">Placa (Directa)</option>
+  </select>
+
+  <label>Medidas (Largo / Ancho / Alto) mm</label>
+  <div style="display: flex; gap: 10px;">
+    <input type="number" id="l" placeholder="L" value="340">
+    <input type="number" id="w" placeholder="W" value="250">
+    <input type="number" id="h" placeholder="H" value="240">
+  </div>
+
+  <label>Precio por Kilo ($)</label>
+  <input type="number" id="precio_kilo" value="1250">
+
+  <label>Bobina</label>
+  <select id="bobina_manual">
+    <option value="auto">Automático (Estándar)</option>
+    <option value="980">980 mm</option>
+    <option value="1000">1000 mm</option>
+    <option value="1200">1200 mm</option>
+    <option value="1300">1300 mm</option>
+    <option value="1400">1400 mm</option>
+    <option value="1600">1600 mm</option>
+  </select>
+
+  <label>Extra (mm)</label>
+  <input type="number" id="xtra" value="0">
+
+  <label>Material <span class="highlight-mat" id="mat_code">25M</span></label>
+  <div style="display: flex; gap: 10px;">
+    <select id="gramaje" onchange="actualizarMaterial()">
+      <option value="12">12 (400g) [x1.0]</option>
+      <option value="14">14 (450g) [x1.125]</option>
+      <option value="17">17 (500g) [x1.25]</option>
+      <option value="20">20 (600g) [x1.5]</option>
+      <option value="22">22 (620g) [x1.55]</option>
+      <option value="25" selected>25 (650g) [x1.625]</option>
+      <option value="30">30 (700g) [x1.75]</option>
+    </select>
+    <select id="color_carton" onchange="actualizarMaterial()">
+      <option value="C">Café (C)</option>
+      <option value="M" selected>Blanco (M)</option>
+    </select>
+  </div>
+
+  <label>Tintas y Cobertura (Máx 3 colores)</label>
+  <div style="display: flex; gap: 10px;">
+    <input type="number" id="colores" placeholder="N° Colores" value="0" min="0" max="3">
+    <input type="number" id="cobertura" placeholder="% Uso" value="100" min="1" max="100">
+  </div>
+
+  <div class="checkbox-group">
+    <input type="checkbox" id="matriz">
+    <label for="matriz">Usar Matriz</label>
+  </div>
+
+  <button onclick="calcular()">Calcular Proyecto</button>
+  <div class="result" id="resultado"></div>
+</div>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  function actualizarMaterial() {
+    const gramaje = document.getElementById('gramaje').value;
+    const color = document.getElementById('color_carton').value;
+    document.getElementById('mat_code').innerText = gramaje + color;
+  }
+
+  const recetas = {
+    "200": { l: [2, 2, 0, 1, 60], w: [0, 0.5, 1, 0, 8] },
+    "200Bi": { l: [2, 2, 0, 1, 50], w: [0, 0.5, 1, 0, 8] },
+    "201": { l: [2, 2, 0, 1, 60], w: [0, 1, 1, 0, 11] },
+    "201Bi": { l: [1, 1, 0, 1, 50], w: [0, 1, 1, 0, 11] },
+    "202": { l: [2, 2, 0, 1, 60], w: [0, 1, 1, 1, 5] },
+    "203": { l: [2, 2, 0, 1, 60], w: [0, 2, 1, 0, 5] },
+    "203Bi": { l: [2, 2, 0, 1, 50], w: [0, 2, 1, 0, 5] },
+    "422": { l: [0, 1, 2, 1, 8], w: [1, 0, 4, 0, 42] },
+    "426C": { l: [1, 0, 2, 1, 16], w: [0, 2, 4, 0, 45] },
+    "427B": { l: [0, 2, 3, 1, 13], w: [1, 0, 4, 0, 59] },
+    "427C": { l: [0, 2, 3, 1, 18], w: [1, 0, 4, 0, 78] },
+    "429": { l: [0, 2, 3, 1, 20], w: [1, 0, 4, 0, 58] },
+    "452": { l: [1, 0, 2, 1, 11], w: [0, 1, 2, 0, 11] },
+    "453": { l: [0, 1, 2, 1, 11], w: [1, 0, 2, 0, 11] },
+    "458": { l: [1, 0, 2, 1, 4], w: [0, 1, 2, 0, 4] },
+    "Placa": { l: [1, 0, 0, 0, 0], w: [0, 1, 0, 0, 0] }
+  };
+  
+  const factores_gramaje = { "12": 1.0, "14": 1.125, "17": 1.25, "20": 1.5, "22": 1.55, "25": 1.625, "30": 1.75 };
+  const bobinas_std = [1000, 1200, 1400, 1600];
+
+  function calcular() {
+    const caja = document.getElementById('caja').value;
+    const L = parseFloat(document.getElementById('l').value) || 0;
+    const W = parseFloat(document.getElementById('w').value) || 0;
+    const H = parseFloat(document.getElementById('h').value) || 0;
+    const X = parseFloat(document.getElementById('xtra').value) || 0;
+    const precio_kilo = parseFloat(document.getElementById('precio_kilo').value) || 0;
+    const bobina_sel = document.getElementById('bobina_manual').value;
+    const gramaje = document.getElementById('gramaje').value;
+    const color_carton = document.getElementById('color_carton').value;
+    const colores = Math.min(parseFloat(document.getElementById('colores').value) || 0, 3);
+    const cobertura = parseFloat(document.getElementById('cobertura').value) / 100 || 1;
+    const matriz = document.getElementById('matriz').checked;
+
+    const rec = recetas[caja];
+    let pad_largo = (L*rec.l[0]) + (W*rec.l[1]) + (H*rec.l[2]) + (X*rec.l[3]) + rec.l[4];
+    let pad_ancho = (L*rec.w[0]) + (W*rec.w[1]) + (H*rec.w[2]) + (X*rec.w[3]) + rec.w[4];
+
+    // Ajustes por Matriz y Bipartida
+    let calc_largo = pad_largo;
+    let calc_ancho = pad_ancho;
+    
+    if (caja.includes("Bi")) {
+      calc_largo += 40;
+    }
+    if (matriz) {
+      calc_largo += 40;
+      calc_ancho += 40;
+    }
+
+    // Selección de Bobina y Cabidas
+    let mejor_bobina = 0, mejor_cabidas = 0, min_merma = Infinity;
+    const b_array = bobina_sel === "auto" ? bobinas_std : [parseInt(bobina_sel)];
+
+    for(let b of b_array) {
+      let cabidas = Math.floor((b - 30) / calc_ancho);
+      if(cabidas > 0) {
+        if(bobina_sel === "auto" && cabidas > 4) continue; // Restricción de 4 repeticiones
+        
+        let merma_neta = (b - 30) - (cabidas * calc_ancho); 
+        if(merma_neta >= 0 && merma_neta < min_merma) { 
+          min_merma = merma_neta; 
+          mejor_bobina = b;
+          mejor_cabidas = cabidas;
+        }
+      }
+    }
+
+    const res = document.getElementById('resultado');
+    res.style.display = 'block';
+
+    if (mejor_bobina === 0) {
+      res.innerHTML = "<strong>Error:</strong> Las medidas de la placa superan el ancho de la bobina seleccionada.";
+      return;
+    }
+
+    // Cálculo del precio base en 12C
+    let area_m2 = (mejor_bobina / mejor_cabidas) * calc_largo / 1000000;
+    let costo_base = area_m2 * (precio_kilo / 2.5);
+    
+    if (color_carton === "M") {
+      costo_base *= 1.15; // +15% si es blanco
+    }
+
+    let costo_impresion = (40 * colores * cobertura);
+    let costo_fijo = 10;
+    
+    let total_12C = costo_base + costo_impresion + costo_fijo;
+    let precio_final = total_12C * factores_gramaje[gramaje];
+
+    res.innerHTML = `
+      <strong>Medidas para Cálculo:</strong> ${calc_largo} x ${calc_ancho} mm <br>
+      <strong>Bobina:</strong> ${mejor_bobina} mm <br>
+      <strong>Repeticiones (Cabidas):</strong> ${mejor_cabidas} <br>
+      <strong>Merma Neta:</strong> ${min_merma} mm <br>
+      <hr style="border-top:1px solid #ccc; margin: 10px 0;">
+      <strong style="font-size:18px;">Precio Unitario: $${Math.round(precio_final)}</strong>
+    `;
+  }
+</script>
+</body>
+</html>
