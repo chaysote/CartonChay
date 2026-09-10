@@ -63,8 +63,11 @@
     <option value="1600">1600 mm</option>
   </select>
 
-  <label>Extra (mm)</label>
-  <input type="number" id="xtra" value="0">
+  <label>Ajustes Extra Directos (mm)</label>
+  <div style="display: flex; gap: 10px;">
+    <input type="number" id="xtra_largo" placeholder="Largo" value="0">
+    <input type="number" id="xtra_ancho" placeholder="Ancho" value="0">
+  </div>
 
   <label>Material <span class="highlight-mat" id="mat_code">12C</span></label>
   <div style="display: flex; gap: 10px;">
@@ -137,7 +140,8 @@
     const L = parseFloat(document.getElementById('l').value) || 0;
     const W = parseFloat(document.getElementById('w').value) || 0;
     const H = parseFloat(document.getElementById('h').value) || 0;
-    const X = parseFloat(document.getElementById('xtra').value) || 0;
+    const XL = parseFloat(document.getElementById('xtra_largo').value) || 0;
+    const XA = parseFloat(document.getElementById('xtra_ancho').value) || 0;
     
     if (L === 0 && W === 0 && H === 0) {
       res.style.display = 'block';
@@ -154,8 +158,11 @@
     const matriz = document.getElementById('matriz').checked;
 
     const rec = recetas[caja];
-    let pad_largo = (L*rec.l[0]) + (W*rec.l[1]) + (H*rec.l[2]) + (X*rec.l[3]) + rec.l[4];
-    let pad_ancho = (L*rec.w[0]) + (W*rec.w[1]) + (H*rec.w[2]) + (X*rec.w[3]) + rec.w[4];
+    
+    // Se elimina el uso del antiguo multiplicador de Extra (rec.l[3] / rec.w[3])
+    // y se suman directamente los valores manuales (XL y XA) al PAD final.
+    let pad_largo = (L*rec.l[0]) + (W*rec.l[1]) + (H*rec.l[2]) + rec.l[4] + XL;
+    let pad_ancho = (L*rec.w[0]) + (W*rec.w[1]) + (H*rec.w[2]) + rec.w[4] + XA;
 
     // Ajustes por Matriz y Bipartida
     let calc_largo = pad_largo;
@@ -205,7 +212,7 @@
     let costo_base = area_m2 * (precio_kilo / 2.5);
     
     if (color_carton === "M") {
-      costo_base *= 1.15; // +15% si es blanco
+      costo_base *= 1.15;
     }
 
     let costo_impresion = (40 * colores * cobertura);
