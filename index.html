@@ -43,9 +43,9 @@
 
   <label>Medidas (Largo / Ancho / Alto) mm</label>
   <div style="display: flex; gap: 10px;">
-    <input type="number" id="l" placeholder="L" value="340">
-    <input type="number" id="w" placeholder="W" value="250">
-    <input type="number" id="h" placeholder="H" value="240">
+    <input type="number" id="l" placeholder="L" value="0">
+    <input type="number" id="w" placeholder="W" value="0">
+    <input type="number" id="h" placeholder="H" value="0">
   </div>
 
   <label>Precio por Kilo ($)</label>
@@ -65,27 +65,27 @@
   <label>Extra (mm)</label>
   <input type="number" id="xtra" value="0">
 
-  <label>Material <span class="highlight-mat" id="mat_code">25M</span></label>
+  <label>Material <span class="highlight-mat" id="mat_code">12C</span></label>
   <div style="display: flex; gap: 10px;">
     <select id="gramaje" onchange="actualizarMaterial()">
-      <option value="12">12 (400g) [x1.0]</option>
+      <option value="12" selected>12 (400g) [x1.0]</option>
       <option value="14">14 (450g) [x1.125]</option>
       <option value="17">17 (500g) [x1.25]</option>
       <option value="20">20 (600g) [x1.5]</option>
       <option value="22">22 (620g) [x1.55]</option>
-      <option value="25" selected>25 (650g) [x1.625]</option>
+      <option value="25">25 (650g) [x1.625]</option>
       <option value="30">30 (700g) [x1.75]</option>
     </select>
     <select id="color_carton" onchange="actualizarMaterial()">
-      <option value="C">Café (C)</option>
-      <option value="M" selected>Blanco (M)</option>
+      <option value="C" selected>Café (C)</option>
+      <option value="M">Blanco (M)</option>
     </select>
   </div>
 
   <label>Tintas y Cobertura (Máx 3 colores)</label>
   <div style="display: flex; gap: 10px;">
     <input type="number" id="colores" placeholder="N° Colores" value="0" min="0" max="3">
-    <input type="number" id="cobertura" placeholder="% Uso" value="100" min="1" max="100">
+    <input type="number" id="cobertura" placeholder="% Uso" value="50" min="1" max="100">
   </div>
 
   <div class="checkbox-group">
@@ -111,8 +111,8 @@
   const recetas = {
     "200": { l: [2, 2, 0, 1, 60], w: [0, 0.5, 1, 0, 8] },
     "200Bi": { l: [2, 2, 0, 1, 50], w: [0, 0.5, 1, 0, 8] },
-    "201": { l: [2, 2, 0, 1, 60], w: [0, 1, 1, 0, 11] },
-    "201Bi": { l: [1, 1, 0, 1, 50], w: [0, 1, 1, 0, 11] },
+    "201": { l: [2, 2, 0, 1, 60], w: [0, 1, 1, 0, 10] },
+    "201Bi": { l: [1, 1, 0, 1, 50], w: [0, 1, 1, 0, 10] },
     "202": { l: [2, 2, 0, 1, 60], w: [0, 1, 1, 1, 5] },
     "203": { l: [2, 2, 0, 1, 60], w: [0, 2, 1, 0, 5] },
     "203Bi": { l: [2, 2, 0, 1, 50], w: [0, 2, 1, 0, 5] },
@@ -131,11 +131,19 @@
   const bobinas_std = [1000, 1200, 1400, 1600];
 
   function calcular() {
+    const res = document.getElementById('resultado');
     const caja = document.getElementById('caja').value;
     const L = parseFloat(document.getElementById('l').value) || 0;
     const W = parseFloat(document.getElementById('w').value) || 0;
     const H = parseFloat(document.getElementById('h').value) || 0;
     const X = parseFloat(document.getElementById('xtra').value) || 0;
+    
+    if (L === 0 && W === 0 && H === 0) {
+      res.style.display = 'block';
+      res.innerHTML = "<strong>Ingresa las medidas de la caja para comenzar a cotizar.</strong>";
+      return;
+    }
+
     const precio_kilo = parseFloat(document.getElementById('precio_kilo').value) || 0;
     const bobina_sel = document.getElementById('bobina_manual').value;
     const gramaje = document.getElementById('gramaje').value;
@@ -151,8 +159,9 @@
     // Ajustes por Matriz y Bipartida
     let calc_largo = pad_largo;
     let calc_ancho = pad_ancho;
+    let es_bipartida = caja.includes("Bi");
     
-    if (caja.includes("Bi")) {
+    if (es_bipartida) {
       calc_largo += 40;
     }
     if (matriz) {
@@ -167,7 +176,7 @@
     for(let b of b_array) {
       let cabidas = Math.floor((b - 30) / calc_ancho);
       if(cabidas > 0) {
-        if(bobina_sel === "auto" && cabidas > 4) continue; // Restricción de 4 repeticiones
+        if(bobina_sel === "auto" && cabidas > 4) continue;
         
         let merma_neta = (b - 30) - (cabidas * calc_ancho); 
         if(merma_neta >= 0 && merma_neta < min_merma) { 
@@ -178,7 +187,6 @@
       }
     }
 
-    const res = document.getElementById('resultado');
     res.style.display = 'block';
 
     if (mejor_bobina === 0) {
@@ -186,8 +194,13 @@
       return;
     }
 
-    // Cálculo del precio base en 12C
+    // Cálculo del área y duplicación si es Bipartida
     let area_m2 = (mejor_bobina / mejor_cabidas) * calc_largo / 1000000;
+    if (es_bipartida) {
+      area_m2 *= 2; 
+    }
+
+    // Cálculo del precio base en 12C
     let costo_base = area_m2 * (precio_kilo / 2.5);
     
     if (color_carton === "M") {
@@ -200,8 +213,10 @@
     let total_12C = costo_base + costo_impresion + costo_fijo;
     let precio_final = total_12C * factores_gramaje[gramaje];
 
+    let texto_piezas = es_bipartida ? " <strong style='color:#0056b3;'>(x2 Piezas)</strong>" : "";
+
     res.innerHTML = `
-      <strong>Medidas para Cálculo:</strong> ${calc_largo} x ${calc_ancho} mm <br>
+      <strong>Medidas para Cálculo:</strong> ${calc_largo} x ${calc_ancho} mm ${texto_piezas}<br>
       <strong>Bobina:</strong> ${mejor_bobina} mm <br>
       <strong>Repeticiones (Cabidas):</strong> ${mejor_cabidas} <br>
       <strong>Merma Neta:</strong> ${min_merma} mm <br>
