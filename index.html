@@ -159,8 +159,6 @@
 
     const rec = recetas[caja];
     
-    // Se elimina el uso del antiguo multiplicador de Extra (rec.l[3] / rec.w[3])
-    // y se suman directamente los valores manuales (XL y XA) al PAD final.
     let pad_largo = (L*rec.l[0]) + (W*rec.l[1]) + (H*rec.l[2]) + rec.l[4] + XL;
     let pad_ancho = (L*rec.w[0]) + (W*rec.w[1]) + (H*rec.w[2]) + rec.w[4] + XA;
 
@@ -169,9 +167,9 @@
     let calc_ancho = pad_ancho;
     let es_bipartida = caja.includes("Bi");
     
-    if (es_bipartida) {
-      calc_largo += 0;
-    }
+    // Eliminado el "calc_largo += 40" que duplicaba el exceso. 
+    // La receta ya considera la diferencia.
+    
     if (matriz) {
       calc_largo += 40;
       calc_ancho += 40;
