@@ -162,13 +162,10 @@
     let pad_largo = (L*rec.l[0]) + (W*rec.l[1]) + (H*rec.l[2]) + rec.l[4] + XL;
     let pad_ancho = (L*rec.w[0]) + (W*rec.w[1]) + (H*rec.w[2]) + rec.w[4] + XA;
 
-    // Ajustes por Matriz y Bipartida
+    // Ajustes por Matriz
     let calc_largo = pad_largo;
     let calc_ancho = pad_ancho;
     let es_bipartida = caja.includes("Bi");
-    
-    // Eliminado el "calc_largo += 40" que duplicaba el exceso. 
-    // La receta ya considera la diferencia.
     
     if (matriz) {
       calc_largo += 40;
@@ -200,13 +197,10 @@
       return;
     }
 
-    // Cálculo del área y duplicación si es Bipartida
+    // Cálculo del área por UNA pieza
     let area_m2 = (mejor_bobina / mejor_cabidas) * calc_largo / 1000000;
-    if (es_bipartida) {
-      area_m2 *= 2; 
-    }
-
-    // Cálculo del precio base en 12C
+    
+    // Costo por pieza en 12C
     let costo_base = area_m2 * (precio_kilo / 2.5);
     
     if (color_carton === "M") {
@@ -216,8 +210,13 @@
     let costo_impresion = (40 * colores * cobertura);
     let costo_fijo = 10;
     
-    let total_12C = costo_base + costo_impresion + costo_fijo;
-    let precio_final = total_12C * factores_gramaje[gramaje];
+    let total_12C_por_pieza = costo_base + costo_impresion + costo_fijo;
+    let precio_final = total_12C_por_pieza * factores_gramaje[gramaje];
+
+    // Duplicar precio final si es bipartida
+    if (es_bipartida) {
+      precio_final *= 2; 
+    }
 
     let texto_piezas = es_bipartida ? " <strong style='color:#0056b3;'>(x2 Piezas)</strong>" : "";
 
